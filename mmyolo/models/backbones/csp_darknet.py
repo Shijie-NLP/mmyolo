@@ -127,26 +127,21 @@ class YOLOv5CSPDarknet(BaseBackbone):
         in_channels = make_divisible(in_channels, self.widen_factor)
         out_channels = make_divisible(out_channels, self.widen_factor)
         num_blocks = make_round(num_blocks, self.deepen_factor)
-
         stage = []
-        norm_conv_cfg = dict(norm_cfg=self.norm_cfg, act_cfg=self.act_cfg)
-
-        conv_layer = ConvModule(in_channels, out_channels, kernel_size=3, stride=2, padding=1, **norm_conv_cfg)
+        norm_act_cfg = dict(norm_cfg=self.norm_cfg, act_cfg=self.act_cfg)
+        conv_layer = ConvModule(in_channels, out_channels, kernel_size=3, stride=2, padding=1, **norm_act_cfg)
         stage.append(conv_layer)
-
         csp_layer = CSPLayer(
             out_channels,
             out_channels,
             num_blocks=num_blocks,
             add_identity=add_identity,
-            **norm_conv_cfg,
+            **norm_act_cfg,
         )
         stage.append(csp_layer)
-
         if use_spp:
-            spp = SPPFBottleneck(out_channels, out_channels, kernel_sizes=5, **norm_conv_cfg)
+            spp = SPPFBottleneck(out_channels, out_channels, kernel_sizes=5, **norm_act_cfg)
             stage.append(spp)
-
         return stage
 
     def init_weights(self):
@@ -274,13 +269,10 @@ class YOLOv8CSPDarknet(BaseBackbone):
         in_channels = make_divisible(in_channels, self.widen_factor)
         out_channels = make_divisible(out_channels, self.widen_factor)
         num_blocks = make_round(num_blocks, self.deepen_factor)
-
         stage = []
         norm_act_cfg = dict(norm_cfg=self.norm_cfg, act_cfg=self.act_cfg)
-
         conv_layer = ConvModule(in_channels, out_channels, kernel_size=3, stride=2, padding=1, **norm_act_cfg)
         stage.append(conv_layer)
-
         csp_layer = CSPLayerWithTwoConv(
             out_channels,
             out_channels,
@@ -289,11 +281,9 @@ class YOLOv8CSPDarknet(BaseBackbone):
             **norm_act_cfg,
         )
         stage.append(csp_layer)
-
         if use_spp:
             spp = SPPFBottleneck(out_channels, out_channels, kernel_sizes=5, **norm_act_cfg)
             stage.append(spp)
-
         return stage
 
     def init_weights(self):
@@ -390,25 +380,20 @@ class YOLOXCSPDarknet(BaseBackbone):
             self.arch_settings[arch],
             deepen_factor,
             widen_factor,
-            input_channels=input_channels,
-            out_indices=out_indices,
-            frozen_stages=frozen_stages,
-            plugins=plugins,
-            norm_cfg=norm_cfg,
-            act_cfg=act_cfg,
-            norm_eval=norm_eval,
-            init_cfg=init_cfg,
+            input_channels,
+            out_indices,
+            frozen_stages,
+            plugins,
+            norm_cfg,
+            act_cfg,
+            norm_eval,
+            init_cfg,
         )
 
     def build_stem_layer(self) -> nn.Module:
         """Build a stem layer."""
-        return Focus(
-            3,
-            make_divisible(64, self.widen_factor),
-            kernel_size=3,
-            norm_cfg=self.norm_cfg,
-            act_cfg=self.act_cfg,
-        )
+        norm_act_cfg = dict(norm_cfg=self.norm_cfg, act_cfg=self.act_cfg)
+        return Focus(3, make_divisible(64, self.widen_factor), kernel_size=3, **norm_act_cfg)
 
     def build_stage_layer(self, stage_idx: int, setting: list) -> list:
         """Build a stage layer.
@@ -422,18 +407,14 @@ class YOLOXCSPDarknet(BaseBackbone):
         in_channels = make_divisible(in_channels, self.widen_factor)
         out_channels = make_divisible(out_channels, self.widen_factor)
         num_blocks = make_round(num_blocks, self.deepen_factor)
-
         stage = []
         conv = DepthwiseSeparableConvModule if self.use_depthwise else ConvModule
         norm_act_cfg = dict(norm_cfg=self.norm_cfg, act_cfg=self.act_cfg)
-
         conv_layer = conv(in_channels, out_channels, kernel_size=3, stride=2, padding=1, **norm_act_cfg)
         stage.append(conv_layer)
-
         if use_spp:
             spp = SPPFBottleneck(out_channels, out_channels, kernel_sizes=self.spp_kernal_sizes, **norm_act_cfg)
             stage.append(spp)
-
         csp_layer = CSPLayer(
             out_channels,
             out_channels,
@@ -442,5 +423,4 @@ class YOLOXCSPDarknet(BaseBackbone):
             **norm_act_cfg,
         )
         stage.append(csp_layer)
-
         return stage
